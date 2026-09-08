@@ -483,7 +483,7 @@
 
   <form class="form-card" id="formCard">
     <h2>Drop a release</h2>
-    <div class="sub">One entry, straight to the feed. No login needed.</div>
+    <div class="sub">One entry, straight to the feed. No login needed. Posts are reviewed before they go live.</div>
     <div class="form-grid">
       <div class="field">
         <label for="fArtist">Artist</label>
@@ -501,6 +501,15 @@
         <label for="fDate">Release date</label>
         <input id="fDate" name="release_date" type="date" required>
       </div>
+
+      <!-- Honeypot: invisible to real visitors, catches bots that
+           auto-fill every field on a form. Left blank by humans;
+           any value here silently drops the submission in JS, and
+           the DB's with-check rejects it too as a second layer. -->
+      <div class="field full" style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true">
+        <label for="fWebsite">Leave this field empty</label>
+        <input id="fWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
+      </div>
     </div>
     <div class="form-actions">
       <button class="btn-submit" id="submitBtn" type="submit">Post it</button>
@@ -517,7 +526,7 @@
   <div id="feed"></div>
 
   <footer>
-    <span>Built for r/desihiphop — anyone can post, so double-check before you click out.</span>
+    <span>Built for r/desihiphop — community-submitted, reviewed before it goes live.</span>
     <span id="statusLine">connecting…</span>
   </footer>
 </div>
@@ -667,6 +676,21 @@
   }
 
   /* ============================================================
+     Lightweight per-browser id, used only for the server-side
+     submission cooldown (see the rate-limit trigger on the
+     releases table). Not an auth mechanism — just spam friction.
+  ============================================================ */
+  function getDeviceId(){
+    let id;
+    try { id = localStorage.getItem("dhh_device_id"); } catch(e){}
+    if (!id){
+      id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
+      try { localStorage.setItem("dhh_device_id", id); } catch(e){}
+    }
+    return id;
+  }
+
+  /* ============================================================
      Supabase wiring
   ============================================================ */
   let supabase = null;
@@ -754,6 +778,19 @@
     const title = document.getElementById("fTitle").value.trim();
     const link = document.getElementById("fLink").value.trim();
     const release_date = document.getElementById("fDate").value;
+    const honeypot = document.getElementById("fWebsite").value; // don't trim — any value at all fails it
+
+    // Bots tend to fill in every field they can find, including
+    // ones no human ever sees. If this has anything in it, quietly
+    // "succeed" without ever hitting the database.
+    if (honeypot){
+      formMsg.textContent = "Posted! It's pending review before it hits the feed.";
+      formMsg.classList.add("ok");
+      form.reset();
+      document.getElementById("fDate").value = new Date().toISOString().slice(0,10);
+      setTimeout(() => { formCard.classList.remove("show"); formMsg.textContent = ""; }, 1600);
+      return;
+    }
 
     if (!artist || !title || !link || !release_date){
       formMsg.textContent = "Fill in every field.";
@@ -775,23 +812,35 @@
     submitBtn.disabled = true;
     submitBtn.textContent = "Posting…";
 
-    const { error } = await supabase.from("releases").insert({ artist, title, link, release_date });
+    const { error } = await supabase.from("releases").insert({
+      artist,
+      title,
+      link,
+      release_date,
+      honeypot,                 // '' for real users — matches the DB's with-check
+      device_id: getDeviceId()  // powers the server-side submission cooldown
+    });
 
     submitBtn.disabled = false;
     submitBtn.textContent = "Post it";
 
     if (error){
       console.error(error);
-      formMsg.textContent = "Couldn't post that — try again in a moment.";
+      formMsg.textContent = /wait a few minutes/i.test(error.message || "")
+        ? "You're posting too fast — wait a few minutes and try again."
+        : "Couldn't post that — try again in a moment.";
       formMsg.classList.add("err");
       return;
     }
 
-    formMsg.textContent = "Posted! It's live in the feed.";
+    // Note: newly submitted releases start as "pending" and won't
+    // appear in the feed yet — they show up once approved. See
+    // README.md for how review works.
+    formMsg.textContent = "Posted! It's pending review before it hits the feed.";
     formMsg.classList.add("ok");
     form.reset();
     document.getElementById("fDate").value = new Date().toISOString().slice(0,10);
-    setTimeout(() => { formCard.classList.remove("show"); formMsg.textContent = ""; }, 1400);
+    setTimeout(() => { formCard.classList.remove("show"); formMsg.textContent = ""; }, 1600);
     loadReleases();
   });
 
