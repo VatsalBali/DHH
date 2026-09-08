@@ -483,7 +483,7 @@
 
   <form class="form-card" id="formCard">
     <h2>Drop a release</h2>
-    <div class="sub">One entry, straight to the feed. No login needed. Posts are reviewed before they go live.</div>
+    <div class="sub">One entry, straight to the feed. No login needed.</div>
     <div class="form-grid">
       <div class="field">
         <label for="fArtist">Artist</label>
@@ -526,7 +526,7 @@
   <div id="feed"></div>
 
   <footer>
-    <span>Built for r/desihiphop — community-submitted, reviewed before it goes live.</span>
+    <span>Built for r/desihiphop — anyone can post, so double-check before you click out.</span>
     <span id="statusLine">connecting…</span>
   </footer>
 </div>
@@ -784,7 +784,7 @@
     // ones no human ever sees. If this has anything in it, quietly
     // "succeed" without ever hitting the database.
     if (honeypot){
-      formMsg.textContent = "Posted! It's pending review before it hits the feed.";
+      formMsg.textContent = "Posted! It's live in the feed.";
       formMsg.classList.add("ok");
       form.reset();
       document.getElementById("fDate").value = new Date().toISOString().slice(0,10);
@@ -833,10 +833,7 @@
       return;
     }
 
-    // Note: newly submitted releases start as "pending" and won't
-    // appear in the feed yet — they show up once approved. See
-    // README.md for how review works.
-    formMsg.textContent = "Posted! It's pending review before it hits the feed.";
+    formMsg.textContent = "Posted! It's live in the feed.";
     formMsg.classList.add("ok");
     form.reset();
     document.getElementById("fDate").value = new Date().toISOString().slice(0,10);
