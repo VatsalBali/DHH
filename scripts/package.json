@@ -1,0 +1,16 @@
+{
+  "name": "dhh-drops-spotify-checker",
+  "version": "1.0.0",
+  "description": "Scheduled script that grows the tracked-artist list from user posts and auto-posts their new Spotify releases.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "check": "node check-spotify.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}

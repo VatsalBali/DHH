@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DHH Drops — new Desi Hip Hop releases</title>
+<meta name="description" content="Every new Desi Hip Hop release, posted by the community and auto-tracked from Spotify once an artist's been posted once. No need to follow every artist — it lands here.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎤</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  /* ============ Tokens ============ */
+  :root{
+    --bg: #fbf0f2;
+    --surface: #ffffff;
+    --surface-2: #f6e3e9;
+    --ink: #1e1720;
+    --ink-soft: #6f5f68;
+    --ink-faint: #a3919b;
+    --border: #ecd7de;
+    --gold: #d97e00;
+    --gold-ink: #b56900;
+    --magenta: #c81e6b;
+    --magenta-soft: #f6d9e7;
+    --focus-ring: #d97e00;
+    --shadow: 0 1px 2px rgba(30,23,32,0.06), 0 8px 24px -12px rgba(30,23,32,0.18);
+    --radius-s: 6px;
+    --radius-m: 10px;
+    --radius-l: 18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #150f1a;
+      --surface: #1e1724;
+      --surface-2: #271d2d;
+      --ink: #f4ece9;
+      --ink-soft: #bfacb8;
+      --ink-faint: #7d6b78;
+      --border: #372b3d;
+      --gold: #ffb020;
+      --gold-ink: #ffc35c;
+      --magenta: #ff4f9a;
+      --magenta-soft: #3c2130;
+      --focus-ring: #ffb020;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px -14px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #150f1a;
+    --surface: #1e1724;
+    --surface-2: #271d2d;
+    --ink: #f4ece9;
+    --ink-soft: #bfacb8;
+    --ink-faint: #7d6b78;
+    --border: #372b3d;
+    --gold: #ffb020;
+    --gold-ink: #ffc35c;
+    --magenta: #ff4f9a;
+    --magenta-soft: #3c2130;
+    --focus-ring: #ffb020;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px -14px rgba(0,0,0,0.6);
+  }
+
+  *{ box-sizing: border-box; }
+  html{ color-scheme: light dark; }
+  body{
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3{
+    font-family: "Teko", "Arial Narrow", sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+    margin: 0;
+  }
+  a{ color: inherit; }
+  button, input{ font-family: inherit; }
+  ::selection{ background: var(--magenta-soft); }
+  :focus-visible{ outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+  .wrap{
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  /* ============ Header ============ */
+  header{
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .header-inner{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 0 14px;
+  }
+  .wordmark{
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .wordmark .mark{
+    font-size: 40px;
+    line-height: 0.8;
+    background: linear-gradient(120deg, var(--gold), var(--magenta));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .wordmark .tag{
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .theme-toggle{
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-soft);
+    border-radius: var(--radius-s);
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    font-size: 15px;
+    flex: none;
+  }
+  .theme-toggle:hover{ color: var(--ink); border-color: var(--ink-faint); }
+
+  .toolbar{
+    display: flex;
+    gap: 10px;
+    padding-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .search{
+    flex: 1 1 220px;
+    position: relative;
+  }
+  .search input{
+    width: 100%;
+    padding: 10px 14px 10px 34px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .search input::placeholder{ color: var(--ink-faint); }
+  .search svg{
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    color: var(--ink-faint);
+  }
+  .btn-drop{
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-radius: var(--radius-m);
+    border: none;
+    background: var(--ink);
+    color: var(--bg);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .btn-drop{ background: linear-gradient(120deg, var(--gold), var(--magenta)); color: #1a1017; }
+  }
+  :root[data-theme="dark"] .btn-drop{ background: linear-gradient(120deg, var(--gold), var(--magenta)); color: #1a1017; }
+  .btn-drop:hover{ opacity: 0.9; }
+
+  /* ============ Intro ============ */
+  .intro{ padding: 4px 0 22px; }
+  .intro h1{ font-size: clamp(34px, 7vw, 46px); }
+  .intro p{
+    margin: 6px 0 0;
+    color: var(--ink-soft);
+    max-width: 54ch;
+    font-size: 15px;
+  }
+  .intro .stat{
+    margin-top: 10px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--gold-ink);
+  }
+  .intro .stat.show{ display: inline-flex; }
+
+  /* ============ Demo banner ============ */
+  .banner{
+    display: none;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+    background: var(--surface-2);
+    border: 1px dashed var(--ink-faint);
+    color: var(--ink-soft);
+    border-radius: var(--radius-m);
+    padding: 10px 14px;
+    margin-bottom: 18px;
+  }
+  .banner b{ color: var(--ink); }
+  .banner.show{ display: flex; }
+
+  /* ============ Submit form ============ */
+  .form-card{
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-l);
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+  }
+  .form-card.show{ display: block; }
+  .form-card h2{ font-size: 24px; margin-bottom: 4px; }
+  .form-card .sub{ color: var(--ink-soft); font-size: 13px; margin-bottom: 16px; }
+  .form-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .field{ display: flex; flex-direction: column; gap: 5px; }
+  .field.full{ grid-column: 1 / -1; }
+  .field label{
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+  }
+  .field input{
+    padding: 9px 11px;
+    border-radius: var(--radius-s);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .field input:invalid:not(:placeholder-shown){ border-color: var(--magenta); }
+  .form-actions{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .btn-submit{
+    padding: 10px 18px;
+    border-radius: var(--radius-m);
+    border: none;
+    background: var(--gold);
+    color: #211505;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-submit:disabled{ opacity: 0.6; cursor: default; }
+  .btn-cancel{
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .form-msg{ font-size: 13px; }
+  .form-msg.err{ color: var(--magenta); }
+  .form-msg.ok{ color: var(--gold-ink); }
+
+  /* ============ Feed ============ */
+  .feed-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .feed-head h2{
+    font-size: 13px;
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+  }
+  .feed-count{
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+
+  .release{
+    display: grid;
+    grid-template-columns: 62px 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .release:last-child{ border-bottom: none; }
+  .r-date{
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .r-date .day{ font-size: 17px; color: var(--ink-soft); display: block; font-weight: 500; }
+  .r-main{ min-width: 0; }
+  .r-artist{
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .r-title{
+    font-size: 14px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .r-tags{ display: flex; gap: 6px; margin-top: 5px; }
+  .r-pill{
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--ink-soft);
+  }
+  .r-pill.demo{ color: var(--magenta); background: var(--magenta-soft); }
+  .r-pill.auto{ color: var(--gold-ink); background: color-mix(in srgb, var(--gold) 16%, var(--surface-2)); }
+  .r-pill .dot{ width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .r-link{
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .r-link:hover{ border-color: var(--gold); color: var(--gold-ink); }
+  .r-link svg{ width: 13px; height: 13px; }
+
+  .empty{
+    padding: 48px 12px;
+    text-align: center;
+    color: var(--ink-soft);
+  }
+  .empty .big{ font-size: 30px; margin-bottom: 4px; font-family: "Teko"; }
+
+  footer{
+    margin-top: 40px;
+    padding: 22px 0 40px;
+    border-top: 1px solid var(--border);
+    color: var(--ink-faint);
+    font-size: 12.5px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  footer a{ color: var(--ink-soft); text-decoration: underline; text-underline-offset: 2px; }
+
+  @media (max-width: 520px){
+    .form-grid{ grid-template-columns: 1fr; }
+    .release{ grid-template-columns: 46px 1fr auto; }
+    .r-link span{ display: none; }
+    .r-title, .r-artist{ white-space: normal; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="header-inner">
+      <div class="wordmark">
+        <h1 class="mark">DHH Drops</h1>
+        <span class="tag">new desi hip hop, daily</span>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle color theme" title="Toggle theme">◐</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="searchInput" type="text" placeholder="Search by artist or title…" autocomplete="off">
+      </div>
+      <button class="btn-drop" id="dropToggle" type="button">
+        <span aria-hidden="true">+</span> Drop a release
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="intro">
+    <p>Every new Desi Hip Hop release, in one feed — posted by whoever heard it first. No algorithm, no following twenty artists. See a drop, add it below.</p>
+    <p>Post an artist once and they're tracked from then on — new Spotify drops get added on their own after that.</p>
+    <span class="stat" id="statsLine">🎯 auto-tracking <b id="statsCount">—</b> artists</span>
+  </div>
+
+  <div class="banner" id="demoBanner">
+    <span>🔌</span>
+    <span><b>Demo mode.</b> This copy isn't wired to a database yet, so the releases below are examples and submissions won't be saved. See <code>README.md</code> to connect Supabase (free, ~5 min).</span>
+  </div>
+
+  <form class="form-card" id="formCard">
+    <h2>Drop a release</h2>
+    <div class="sub">One entry, straight to the feed. No login needed.</div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="fArtist">Artist</label>
+        <input id="fArtist" name="artist" type="text" maxlength="80" placeholder="e.g. Seedhe Maut" required>
+      </div>
+      <div class="field">
+        <label for="fTitle">Track / EP / album</label>
+        <input id="fTitle" name="title" type="text" maxlength="120" placeholder="e.g. Anthem for the Underground" required>
+      </div>
+      <div class="field full">
+        <label for="fLink">Link</label>
+        <input id="fLink" name="link" type="url" placeholder="Spotify, YouTube, SoundCloud, Instagram…" required>
+      </div>
+      <div class="field">
+        <label for="fDate">Release date</label>
+        <input id="fDate" name="release_date" type="date" required>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-submit" id="submitBtn" type="submit">Post it</button>
+      <button class="btn-cancel" id="cancelBtn" type="button">Cancel</button>
+      <span class="form-msg" id="formMsg"></span>
+    </div>
+  </form>
+
+  <div class="feed-head">
+    <h2>The feed</h2>
+    <span class="feed-count" id="feedCount">—</span>
+  </div>
+
+  <div id="feed"></div>
+
+  <footer>
+    <span>Built for r/desihiphop — anyone can post, so double-check before you click out.</span>
+    <span id="statusLine">connecting…</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     CONFIG — paste your Supabase project values here.
+     Get these from your Supabase dashboard: Project Settings → API.
+     Until both are filled in, the site runs in demo mode with
+     sample data and submissions are disabled. See README.md.
+  ============================================================ */
+  const SUPABASE_URL = "https://rvdqxdkuznjbkcvwaiag.supabase.co"; // e.g. "https://abcdefgh.supabase.co"
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2ZHF4ZGt1em5qYmtjdndhaWFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDA2ODIsImV4cCI6MjEwNDExNjY4Mn0.XAy-8WjNNk87KgG2yjvb3uMKoBZzUtqzWuBsNP4YGE8"; // the public "anon" key, safe to expose client-side
+
+  const isConfigured = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY.length > 20;
+
+  /* ============================================================
+     Theme toggle (explicit choice overrides system preference)
+  ============================================================ */
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("themeToggle");
+  const savedTheme = (() => { try { return localStorage.getItem("dhh-theme"); } catch(e){ return null; } })();
+  if (savedTheme === "light" || savedTheme === "dark") root.setAttribute("data-theme", savedTheme);
+  themeBtn.addEventListener("click", () => {
+    const current = root.getAttribute("data-theme");
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const next = current === "dark" ? "light" : current === "light" ? "dark" : (prefersDark ? "light" : "dark");
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("dhh-theme", next); } catch(e){}
+  });
+
+  /* ============================================================
+     Platform detection (for the little tag on each card)
+  ============================================================ */
+  function platformFor(url){
+    try{
+      const h = new URL(url).hostname.replace(/^www\./, "");
+      if (h.includes("spotify")) return "Spotify";
+      if (h.includes("youtu")) return "YouTube";
+      if (h.includes("soundcloud")) return "SoundCloud";
+      if (h.includes("music.apple")) return "Apple Music";
+      if (h.includes("instagram")) return "Instagram";
+      if (h.includes("bandcamp")) return "Bandcamp";
+      return h;
+    }catch(e){ return "link"; }
+  }
+
+  /* ============================================================
+     Demo data — clearly-fictional example rows, shown only when
+     Supabase isn't configured, so the page never looks empty.
+  ============================================================ */
+  const DEMO_RELEASES = [
+    { artist: "(demo) Kahaani Cypher", title: "Borivali Bound", link: "https://open.spotify.com", release_date: daysAgo(0), source: "auto" },
+    { artist: "(demo) Rickshaw Radio", title: "Meter Down EP", link: "https://youtube.com", release_date: daysAgo(1), source: "user" },
+    { artist: "(demo) Basti Beats", title: "Galli No. 9", link: "https://soundcloud.com", release_date: daysAgo(2), source: "user" },
+    { artist: "(demo) Nazm & Bass", title: "Shehar (prod. Lo-Fi Nawab)", link: "https://music.apple.com", release_date: daysAgo(4), source: "user" },
+    { artist: "(demo) Verse Vali", title: "Chai Break", link: "https://instagram.com", release_date: daysAgo(6), source: "user" },
+  ];
+  function daysAgo(n){
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return d.toISOString().slice(0,10);
+  }
+
+  /* ============================================================
+     Rendering
+  ============================================================ */
+  const feedEl = document.getElementById("feed");
+  const feedCountEl = document.getElementById("feedCount");
+  const statusEl = document.getElementById("statusLine");
+  const searchInput = document.getElementById("searchInput");
+
+  let allReleases = [];
+  let demoMode = !isConfigured;
+
+  function fmtDate(iso){
+    const d = new Date(iso + "T00:00:00");
+    const day = d.toLocaleDateString(undefined, { day: "numeric" });
+    const mon = d.toLocaleDateString(undefined, { month: "short" }).toUpperCase();
+    return { day, mon };
+  }
+
+  function linkIconSvg(){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+  }
+
+  function render(list){
+    feedEl.innerHTML = "";
+    if (!list.length){
+      feedEl.innerHTML = '<div class="empty"><div class="big">Nothing here yet</div>No releases match — or none have been posted. Be the first to drop one.</div>';
+      feedCountEl.textContent = "0 releases";
+      return;
+    }
+    feedCountEl.textContent = list.length + (list.length === 1 ? " release" : " releases");
+    const frag = document.createDocumentFragment();
+    list.forEach(r => {
+      const { day, mon } = fmtDate(r.release_date);
+      const platform = platformFor(r.link);
+      const row = document.createElement("div");
+      row.className = "release";
+      row.innerHTML = `
+        <div class="r-date"><span class="day">${escapeHtml(day)}</span>${escapeHtml(mon)}</div>
+        <div class="r-main">
+          <div class="r-artist">${escapeHtml(r.artist)}</div>
+          <div class="r-title">${escapeHtml(r.title)}</div>
+          <div class="r-tags">
+            <span class="r-pill${demoMode ? " demo" : ""}"><span class="dot"></span>${escapeHtml(platform)}</span>
+            ${r.source === "auto" ? '<span class="r-pill auto">⚡ auto-tracked</span>' : ""}
+          </div>
+        </div>
+        <a class="r-link" href="${escapeAttr(r.link)}" target="_blank" rel="noopener noreferrer nofollow">
+          ${linkIconSvg()}<span>Listen</span>
+        </a>
+      `;
+      frag.appendChild(row);
+    });
+    feedEl.appendChild(frag);
+  }
+
+  function escapeHtml(s){
+    return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+  }
+  function escapeAttr(s){
+    // only allow http(s) links to be rendered as href
+    const str = String(s ?? "");
+    if (!/^https?:\/\//i.test(str)) return "#";
+    return str.replace(/"/g, "%22");
+  }
+
+  function applySearch(){
+    const q = searchInput.value.trim().toLowerCase();
+    if (!q){ render(allReleases); return; }
+    render(allReleases.filter(r =>
+      r.artist.toLowerCase().includes(q) || r.title.toLowerCase().includes(q)
+    ));
+  }
+  searchInput.addEventListener("input", applySearch);
+
+  function sortReleases(list){
+    return [...list].sort((a, b) => {
+      if (a.release_date !== b.release_date) return a.release_date < b.release_date ? 1 : -1;
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    });
+  }
+
+  /* ============================================================
+     Supabase wiring
+  ============================================================ */
+  let supabase = null;
+  const demoBanner = document.getElementById("demoBanner");
+  const dropToggle = document.getElementById("dropToggle");
+  const formCard = document.getElementById("formCard");
+  const cancelBtn = document.getElementById("cancelBtn");
+  const form = document.getElementById("formCard");
+  const submitBtn = document.getElementById("submitBtn");
+  const formMsg = document.getElementById("formMsg");
+
+  document.getElementById("fDate").value = new Date().toISOString().slice(0,10);
+
+  dropToggle.addEventListener("click", () => formCard.classList.add("show"));
+  cancelBtn.addEventListener("click", () => formCard.classList.remove("show"));
+
+  const statsLine = document.getElementById("statsLine");
+  const statsCount = document.getElementById("statsCount");
+
+  if (demoMode){
+    demoBanner.classList.add("show");
+    statusEl.textContent = "demo mode — not connected";
+    allReleases = sortReleases(DEMO_RELEASES);
+    render(allReleases);
+    dropToggle.disabled = false; // still opens the form, but submit is blocked below
+    statsCount.textContent = "3 (demo)";
+    statsLine.classList.add("show");
+  } else {
+    try{
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      statusEl.textContent = "live";
+      loadReleases();
+      loadTrackedCount();
+      subscribeRealtime();
+    }catch(e){
+      console.error(e);
+      statusEl.textContent = "connection error — check config";
+      demoBanner.classList.add("show");
+      demoBanner.querySelector("span:last-child").innerHTML = "<b>Couldn't connect to the database.</b> Check the Supabase URL and key at the top of index.html.";
+      allReleases = sortReleases(DEMO_RELEASES);
+      render(allReleases);
+    }
+  }
+
+  async function loadReleases(){
+    const { data, error } = await supabase
+      .from("releases")
+      .select("*")
+      .order("release_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(300);
+    if (error){
+      console.error(error);
+      statusEl.textContent = "error loading releases";
+      return;
+    }
+    allReleases = data;
+    applySearch();
+  }
+
+  async function loadTrackedCount(){
+    const { count, error } = await supabase
+      .from("tracked_artists")
+      .select("*", { count: "exact", head: true });
+    if (error || count === null) return; // table may not exist yet on an older schema — fail quietly
+    if (count > 0){
+      statsCount.textContent = String(count);
+      statsLine.classList.add("show");
+    }
+  }
+
+  function subscribeRealtime(){
+    supabase
+      .channel("releases-feed")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "releases" }, () => loadReleases())
+      .subscribe();
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    formMsg.textContent = "";
+    formMsg.className = "form-msg";
+
+    const artist = document.getElementById("fArtist").value.trim();
+    const title = document.getElementById("fTitle").value.trim();
+    const link = document.getElementById("fLink").value.trim();
+    const release_date = document.getElementById("fDate").value;
+
+    if (!artist || !title || !link || !release_date){
+      formMsg.textContent = "Fill in every field.";
+      formMsg.classList.add("err");
+      return;
+    }
+    if (!/^https?:\/\//i.test(link)){
+      formMsg.textContent = "Link needs to start with http:// or https://";
+      formMsg.classList.add("err");
+      return;
+    }
+
+    if (demoMode){
+      formMsg.textContent = "Demo mode — connect Supabase (see README.md) before this can save for real.";
+      formMsg.classList.add("err");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Posting…";
+
+    const { error } = await supabase.from("releases").insert({ artist, title, link, release_date });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Post it";
+
+    if (error){
+      console.error(error);
+      formMsg.textContent = "Couldn't post that — try again in a moment.";
+      formMsg.classList.add("err");
+      return;
+    }
+
+    formMsg.textContent = "Posted! It's live in the feed.";
+    formMsg.classList.add("ok");
+    form.reset();
+    document.getElementById("fDate").value = new Date().toISOString().slice(0,10);
+    setTimeout(() => { formCard.classList.remove("show"); formMsg.textContent = ""; }, 1400);
+    loadReleases();
+  });
+
+})();
+</script>
+</body>
+</html>
