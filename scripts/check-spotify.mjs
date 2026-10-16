@@ -176,6 +176,15 @@ function cleanTitle(name) {
   return name.replace(/\s+-\s+(Single|EP)$/i, "").trim();
 }
 
+/** Link posted for an auto release. There's no way to get a direct
+ * Spotify URL without Spotify's API (and Odesli's public API was
+ * retired), so link to a Spotify search for "<first artist> <title>".
+ * Kept in one place so it can switch to a direct link later. */
+function releaseLink(album, title) {
+  const primaryArtist = splitArtistNames(album.artistName || "")[0] || "";
+  return "https://open.spotify.com/search/" + encodeURIComponent(`${primaryArtist} ${title}`.trim());
+}
+
 async function checkStep() {
   const { data: artists, error } = await supabase
     .from("tracked_artists")
@@ -195,7 +204,7 @@ async function checkStep() {
 
   // Everything already in the feed from the lookback window, so a
   // release someone posted by hand (Spotify/YouTube link) isn't posted
-  // a second time with an Apple Music link.
+  // a second time by the checker.
   const { data: recent, error: recentErr } = await supabase
     .from("releases")
     .select("title, spotify_id")
@@ -223,7 +232,7 @@ async function checkStep() {
         const { error: insertErr } = await supabase.from("releases").insert({
           artist: (album.artistName || artist.artist_name).slice(0, 80),
           title: title.slice(0, 120),
-          link: (album.collectionViewUrl || "").replace(/\?.*$/, ""),
+          link: releaseLink(album, title),
           release_date: album.releaseDate.slice(0, 10),
           source: "auto",
           spotify_id: itunesId,
@@ -237,7 +246,11 @@ async function checkStep() {
             console.error(`  insert failed for ${artist.artist_name} — ${title}:`, insertErr.message);
           }
         } else {
-          console.log(`  new: ${album.artistName} — ${title} (${album.releaseDate.slice(0, 10)})`);
+          // Apple URL logged so a wrong top Spotify search result can be traced.
+          console.log(
+            `  new: ${album.artistName} — ${title} (${album.releaseDate.slice(0, 10)}) ` +
+              (album.collectionViewUrl || "").replace(/\?.*$/, ""),
+          );
         }
       }
 
