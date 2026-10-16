@@ -88,9 +88,23 @@ async function spotifyGet(token, path) {
     return spotifyGet(token, path);
   }
   if (!res.ok) {
-    throw new Error(`Spotify GET ${path} failed: ${res.status} ${await res.text()}`);
+    const err = new Error(`Spotify GET ${path} failed: ${res.status} ${await res.text()}`);
+    err.status = res.status;
+    throw err;
   }
   return res.json();
+}
+
+/** 401/403 mean the app itself is locked out (bad credentials, or the
+ * app owner's Premium lapsed) — every later call will fail the same
+ * way, so the run should stop and go red instead of quietly skipping. */
+function isFatalSpotifyError(e) {
+  return e.status === 401 || e.status === 403;
+}
+
+/** 400/404 mean this particular link is bad and retrying won't help. */
+function isPermanentLinkError(e) {
+  return e.status === 400 || e.status === 404;
 }
 
 /* ================= step 1: resolve artists from user posts ================= */
@@ -149,6 +163,7 @@ async function resolveStep(token) {
   console.log(`Resolve step: ${pending.length} release(s) to look up.`);
 
   for (const release of pending) {
+    let done = true;
     try {
       const artists = await resolveArtists(token, release);
       for (const artist of artists) {
@@ -158,15 +173,24 @@ async function resolveStep(token) {
             { spotify_artist_id: artist.id, artist_name: artist.name },
             { onConflict: "spotify_artist_id", ignoreDuplicates: true },
           );
-        if (upsertErr) console.error(`  upsert failed for ${artist.name}:`, upsertErr.message);
-        else console.log(`  tracking: ${artist.name}`);
+        if (upsertErr) {
+          console.error(`  upsert failed for ${artist.name}:`, upsertErr.message);
+          done = false; // retry next run
+        } else {
+          console.log(`  tracking: ${artist.name}`);
+        }
       }
     } catch (e) {
       console.error(`  couldn't resolve release ${release.id} (${release.artist}):`, e.message);
-      // fall through — still mark it done below so a bad/rate-limited
-      // link doesn't get retried forever; it'll just stay untracked.
+      // Fatal (401/403): stop now, leaving this and the rest pending.
+      if (isFatalSpotifyError(e)) throw e;
+      // A dead link won't fix itself, so mark it done; anything else
+      // (5xx, network) is left pending and retried next run.
+      done = isPermanentLinkError(e);
     }
-    await supabase.from("releases").update({ artist_lookup_done: true }).eq("id", release.id);
+    if (done) {
+      await supabase.from("releases").update({ artist_lookup_done: true }).eq("id", release.id);
+    }
     await sleep(REQUEST_DELAY_MS);
   }
 }
@@ -229,6 +253,7 @@ async function checkStep(token) {
         .eq("id", artist.id);
     } catch (e) {
       console.error(`  couldn't check ${artist.artist_name}:`, e.message);
+      if (isFatalSpotifyError(e)) throw e;
     }
     await sleep(REQUEST_DELAY_MS);
   }
